@@ -1,0 +1,152 @@
+﻿<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>台北飯店住宿分析 2020–2022</title>
+<style>
+:root {
+  color-scheme:light;
+  --background:#f6f5f1; --foreground:#1d201f; --muted:#e4e4de;
+  --muted-foreground:#626762; --border:#d0d2cc;
+  --viz-series-1:#1d6b67; --viz-series-2:#c47a38; --viz-series-3:#7d6aa5;
+}
+html,body { margin:0; background:var(--background); color:var(--foreground); }
+body { padding:clamp(20px,5vw,64px); }
+main { max-width:1100px; margin:0 auto; }
+@media(prefers-color-scheme:dark) {
+  :root {
+    color-scheme:dark;
+    --background:#171918; --foreground:#f2f4f1; --muted:#2a2d2b;
+    --muted-foreground:#a7ada7; --border:#3b3f3c;
+    --viz-series-1:#58b8b0; --viz-series-2:#e3a66d; --viz-series-3:#b3a2d4;
+  }
+}
+</style>
+</head>
+<body><main>
+<div id="taipei-hotel-report">
+  <style>
+    #taipei-hotel-report { color:var(--foreground); font-family:system-ui,"Microsoft JhengHei","Noto Sans TC",sans-serif; }
+    #taipei-hotel-report * { box-sizing:border-box; }
+    #taipei-hotel-report .intro { display:grid; grid-template-columns:1.35fr .65fr; gap:28px; align-items:end; padding-bottom:22px; border-bottom:1px solid var(--border); }
+    #taipei-hotel-report .kicker { margin:0 0 8px; color:var(--muted-foreground); letter-spacing:.08em; }
+    #taipei-hotel-report h1 { margin:0; font-size:clamp(30px,5vw,54px); line-height:1.05; font-weight:500; }
+    #taipei-hotel-report .summary { margin:10px 0 0; color:var(--muted-foreground); }
+    #taipei-hotel-report .focus { color:var(--muted-foreground); }
+    #taipei-hotel-report .focus b { display:block; margin-bottom:5px; color:var(--foreground); font-weight:500; }
+    #taipei-hotel-report .metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:18px; margin:26px 0 38px; }
+    #taipei-hotel-report .metric { min-width:0; }
+    #taipei-hotel-report .metric span { display:block; color:var(--muted-foreground); }
+    #taipei-hotel-report .metric strong { display:block; margin-top:4px; font-size:clamp(24px,3vw,38px); line-height:1.1; font-weight:500; font-variant-numeric:tabular-nums; }
+    #taipei-hotel-report section { margin:38px 0; }
+    #taipei-hotel-report h2 { margin:0 0 5px; font-size:21px; font-weight:500; }
+    #taipei-hotel-report .note { margin:0 0 18px; color:var(--muted-foreground); }
+    #taipei-hotel-report .year-row { display:grid; grid-template-columns:70px minmax(0,1fr) 108px; gap:12px; align-items:center; margin:15px 0; }
+    #taipei-hotel-report .year { font-size:18px; }
+    #taipei-hotel-report .track { height:30px; background:var(--muted); overflow:hidden; }
+    #taipei-hotel-report .fill { height:100%; background:var(--viz-series-1); }
+    #taipei-hotel-report .year-row:nth-of-type(2) .fill { background:var(--viz-series-2); }
+    #taipei-hotel-report .year-row:nth-of-type(3) .fill { background:var(--viz-series-3); }
+    #taipei-hotel-report .amount { text-align:right; font-variant-numeric:tabular-nums; }
+    #taipei-hotel-report .year-details { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:18px; }
+    #taipei-hotel-report .year-detail { border-top:1px solid var(--border); padding-top:10px; color:var(--muted-foreground); }
+    #taipei-hotel-report .year-detail b { display:block; color:var(--foreground); font-weight:500; margin-bottom:4px; }
+    #taipei-hotel-report .split { display:grid; grid-template-columns:1.3fr .7fr; gap:30px; }
+    #taipei-hotel-report .hotel-row { display:grid; grid-template-columns:minmax(115px,1fr) 2.2fr 72px; gap:10px; align-items:center; margin:12px 0; }
+    #taipei-hotel-report .hotel-name { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+    #taipei-hotel-report .hotel-track { height:16px; background:var(--muted); }
+    #taipei-hotel-report .hotel-fill { height:100%; background:var(--viz-series-1); }
+    #taipei-hotel-report .hotel-value { text-align:right; font-variant-numeric:tabular-nums; }
+    #taipei-hotel-report .findings { border-left:1px solid var(--border); padding-left:22px; }
+    #taipei-hotel-report .finding { margin:0 0 22px; color:var(--muted-foreground); }
+    #taipei-hotel-report .finding b { display:block; color:var(--foreground); font-weight:500; margin-bottom:4px; }
+    #taipei-hotel-report .table-wrap { overflow-x:auto; border-top:1px solid var(--border); }
+    #taipei-hotel-report table { width:100%; border-collapse:collapse; }
+    #taipei-hotel-report th, #taipei-hotel-report td { padding:11px 8px; border-bottom:1px solid var(--border); text-align:left; white-space:nowrap; }
+    #taipei-hotel-report th { color:var(--muted-foreground); font-weight:400; }
+    #taipei-hotel-report td.num { text-align:right; font-variant-numeric:tabular-nums; }
+    #taipei-hotel-report .source-note { padding-top:14px; border-top:1px solid var(--border); color:var(--muted-foreground); }
+    @media(max-width:700px) {
+      #taipei-hotel-report .intro, #taipei-hotel-report .split { grid-template-columns:1fr; }
+      #taipei-hotel-report .metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      #taipei-hotel-report .findings { border-left:0; border-top:1px solid var(--border); padding:18px 0 0; }
+    }
+    @media(max-width:430px) {
+      #taipei-hotel-report .year-row { grid-template-columns:52px minmax(0,1fr) 88px; }
+      #taipei-hotel-report .year-details { grid-template-columns:1fr; }
+      #taipei-hotel-report .hotel-row { grid-template-columns:105px minmax(0,1fr) 58px; }
+    }
+  </style>
+
+  <header class="intro">
+    <div>
+      <p class="kicker">2020–2022 · 台北住宿紀錄</p>
+      <h1>飯店住宿分析</h1>
+      <p class="summary">依住宿紀錄重新計算房晚、實付房費與飯店集中度。</p>
+    </div>
+    <div class="focus"><b>主要觀察</b>住宿活動集中在 2020 年；2021 年雖住宿次數下降，但點數與房券使用比例提高。</div>
+  </header>
+
+  <div class="metrics" aria-label="整體摘要">
+    <div class="metric"><span>住宿次數</span><strong>44</strong></div>
+    <div class="metric"><span>總房晚</span><strong>57</strong></div>
+    <div class="metric"><span>實付房費</span><strong>NT$160,127</strong></div>
+    <div class="metric"><span>零房費住宿</span><strong>9</strong></div>
+  </div>
+
+  <section>
+    <h2>年度實付房費</h2>
+    <p class="note">房費由 2020 年的 NT$95,918 降至 2022 年的 NT$16,500。</p>
+    <div role="img" aria-label="2020、2021、2022 年實付房費比較">
+      <div class="year-row"><span class="year">2020</span><div class="track"><div class="fill" style="width:100%"></div></div><span class="amount">NT$95,918</span></div>
+      <div class="year-row"><span class="year">2021</span><div class="track"><div class="fill" style="width:49.7%"></div></div><span class="amount">NT$47,709</span></div>
+      <div class="year-row"><span class="year">2022</span><div class="track"><div class="fill" style="width:17.2%"></div></div><span class="amount">NT$16,500</span></div>
+    </div>
+    <div class="year-details">
+      <div class="year-detail"><b>2020</b>26 次住宿 · 31 房晚 · 3 次零房費</div>
+      <div class="year-detail"><b>2021</b>14 次住宿 · 20 房晚 · 5 次零房費</div>
+      <div class="year-detail"><b>2022</b>4 次住宿 · 6 房晚 · 1 次零房費</div>
+    </div>
+  </section>
+
+  <section class="split">
+    <div>
+      <h2>最常入住飯店</h2>
+      <p class="note">依住宿次數排名，前六名。</p>
+      <div role="img" aria-label="飯店住宿次數排名">
+        <div class="hotel-row"><span class="hotel-name">台北晶華</span><div class="hotel-track"><div class="hotel-fill" style="width:100%"></div></div><span class="hotel-value">8 次</span></div>
+        <div class="hotel-row"><span class="hotel-name">台北新板希爾頓</span><div class="hotel-track"><div class="hotel-fill" style="width:75%"></div></div><span class="hotel-value">6 次</span></div>
+        <div class="hotel-row"><span class="hotel-name">遠東香格里拉</span><div class="hotel-track"><div class="hotel-fill" style="width:37.5%"></div></div><span class="hotel-value">3 次</span></div>
+        <div class="hotel-row"><span class="hotel-name">台北 W 飯店</span><div class="hotel-track"><div class="hotel-fill" style="width:37.5%"></div></div><span class="hotel-value">3 次</span></div>
+        <div class="hotel-row"><span class="hotel-name">金普頓大安</span><div class="hotel-track"><div class="hotel-fill" style="width:37.5%"></div></div><span class="hotel-value">3 次</span></div>
+        <div class="hotel-row"><span class="hotel-name">台北君悅</span><div class="hotel-track"><div class="hotel-fill" style="width:37.5%"></div></div><span class="hotel-value">3 次</span></div>
+      </div>
+    </div>
+    <aside class="findings">
+      <p class="finding"><b>回訪集中</b>台北晶華共 8 次、12 房晚，住宿次數與房晚皆居首。</p>
+      <p class="finding"><b>點數效益明顯</b>9 次住宿實付房費為零，占全部住宿約 20%。</p>
+      <p class="finding"><b>成本口徑</b>2020 年另有 5 筆餐飲或住宿券支出，共 NT$11,564，未混入房費。</p>
+    </aside>
+  </section>
+
+  <section>
+    <h2>年度比較表</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>年度</th><th class="num">住宿次數</th><th class="num">房晚</th><th class="num">實付房費</th><th class="num">付費房晚均價</th><th class="num">零房費住宿</th></tr></thead>
+        <tbody>
+          <tr><td>2020</td><td class="num">26</td><td class="num">31</td><td class="num">NT$95,918</td><td class="num">NT$3,426</td><td class="num">3</td></tr>
+          <tr><td>2021</td><td class="num">14</td><td class="num">20</td><td class="num">NT$47,709</td><td class="num">NT$3,181</td><td class="num">5</td></tr>
+          <tr><td>2022</td><td class="num">4</td><td class="num">6</td><td class="num">NT$16,500</td><td class="num">NT$3,300</td><td class="num">1</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <p class="source-note">資料品質提醒：2022 分頁有兩筆入住日期寫為 2021 年；本報告依工作表年度歸類，建議回原始資料確認。金額皆為表內「價格」欄的實付數字。</p>
+</div>
+
+</main></body>
+</html>
