@@ -1,0 +1,23 @@
+{
+  "name": "taipei-hotel-admin",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch server.js",
+    "start": "node server.js",
+    "import": "node scripts/import-xlsx.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "express": "^5.1.0",
+    "express-rate-limit": "^7.5.1",
+    "helmet": "^8.1.0",
+    "mongodb": "^6.17.0",
+    "xlsx": "^0.18.5",
+    "zod": "^3.25.76"
+  }
+}
