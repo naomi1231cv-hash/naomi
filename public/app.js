@@ -12,8 +12,9 @@ async function api(url, options = {}) {
     ...options
   });
   if (response.status === 401) {
+    const body = await response.json().catch(() => ({}));
     showLogin();
-    throw new Error("登入已逾時，請重新登入");
+    throw new Error(body.error === "密碼錯誤" ? "密碼錯誤，請重新輸入" : "登入已逾時，請重新登入");
   }
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
