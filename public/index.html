@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>台北飯店資料管理</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <main>
+    <section id="login-view" class="login-shell">
+      <form id="login-form" class="login-card">
+        <p class="eyebrow">PRIVATE DATABASE</p>
+        <h1>台北飯店資料管理</h1>
+        <p class="muted">請輸入管理密碼以查看與編輯資料。</p>
+        <label>管理密碼<input id="password" name="password" type="password" autocomplete="current-password" required></label>
+        <button type="submit">登入</button>
+        <p id="login-error" class="error" role="alert"></p>
+      </form>
+    </section>
+
+    <section id="admin-view" class="hidden">
+      <header>
+        <div><p class="eyebrow">MONGODB ATLAS</p><h1>住宿資料控制台</h1></div>
+        <button id="logout" class="secondary">登出</button>
+      </header>
+
+      <section id="summary" class="summary"></section>
+
+      <div class="toolbar">
+        <input id="search" type="search" placeholder="搜尋飯店或專案">
+        <select id="year-filter"><option value="">全部年份</option></select>
+        <button id="new-record">＋ 新增資料</button>
+      </div>
+
+      <p id="notice" class="notice" aria-live="polite"></p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>年份</th><th>月份</th><th>飯店</th><th>日期</th><th>晚數</th><th>金額</th><th>專案</th><th></th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="editor">
+    <form id="record-form">
+      <div class="dialog-head"><h2 id="editor-title">新增資料</h2><button type="button" id="close-editor" class="icon">×</button></div>
+      <input id="record-id" type="hidden">
+      <div class="form-grid">
+        <label>年份<input id="year" type="number" min="2000" max="2100" required></label>
+        <label>月份<input id="month" type="number" min="1" max="12"></label>
+        <label class="wide">飯店名稱<input id="hotel" maxlength="200" required></label>
+        <label class="wide">住宿日期<input id="date" maxlength="80"></label>
+        <label>住宿晚數<input id="nights" type="number" min="0" required></label>
+        <label>支出金額<input id="spend" type="number" min="0" required></label>
+        <label class="wide">專案／備註<textarea id="project" maxlength="500"></textarea></label>
+      </div>
+      <p id="form-error" class="error" role="alert"></p>
+      <div class="actions"><button type="button" id="cancel" class="secondary">取消</button><button type="submit">儲存並回寫</button></div>
+    </form>
+  </dialog>
+</body>
+</html>
+
