@@ -16,6 +16,9 @@ const {
   ADMIN_PASSWORD,
   SESSION_SECRET,
   ALLOWED_ORIGIN = "",
+  LINE_CHANNEL_ACCESS_TOKEN = "",
+  LINE_USER_ID = "",
+  APP_URL = "https://naomi-sigma.vercel.app",
   PORT = "3000"
 } = process.env;
 
@@ -64,6 +67,49 @@ async function getCollection() {
     }
   }
   return collection;
+}
+
+function lineMessage(action, record) {
+  const changedAt = new Intl.DateTimeFormat("zh-TW", {
+    timeZone: "Asia/Taipei",
+    dateStyle: "medium",
+    timeStyle: "medium"
+  }).format(new Date());
+  const amount = new Intl.NumberFormat("zh-TW").format(Number(record.spend) || 0);
+  return [
+    `【住宿資料${action}通知】`,
+    `飯店：${record.hotel || "—"}`,
+    `年份／月份：${record.year || "—"}／${record.month || "—"}`,
+    `日期：${record.date || "—"}`,
+    `晚數：${record.nights ?? "—"}`,
+    `金額：NT$ ${amount}`,
+    `專案：${record.project || "—"}`,
+    `異動時間：${changedAt}`,
+    `查看網站：${APP_URL}`
+  ].join("\n");
+}
+
+async function notifyLine(action, record) {
+  if (!LINE_CHANNEL_ACCESS_TOKEN || !LINE_USER_ID) return;
+  try {
+    const response = await fetch("https://api.line.me/v2/bot/message/push", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        to: LINE_USER_ID,
+        messages: [{ type: "text", text: lineMessage(action, record) }]
+      })
+    });
+    if (!response.ok) {
+      const detail = await response.text();
+      throw new Error(`LINE Messaging API ${response.status}: ${detail}`);
+    }
+  } catch (error) {
+    console.error("LINE notification failed", error);
+  }
 }
 
 const app = express();
@@ -161,7 +207,9 @@ app.post("/api/records", requireAuth, requireTrustedOrigin, async (req, res, nex
   try {
     const data = recordSchema.parse(req.body);
     const result = await (await getCollection()).insertOne({ ...data, createdAt: new Date(), updatedAt: new Date() });
-    res.status(201).json({ ...data, _id: result.insertedId });
+    const created = { ...data, _id: result.insertedId };
+    await notifyLine("新增", created);
+    res.status(201).json(created);
   } catch (error) { next(error); }
 });
 
@@ -175,6 +223,7 @@ app.put("/api/records/:id", requireAuth, requireTrustedOrigin, async (req, res, 
       { returnDocument: "after" }
     );
     if (!result) return res.status(404).json({ error: "找不到資料" });
+    await notifyLine("修改", result);
     res.json(result);
   } catch (error) { next(error); }
 });
@@ -182,8 +231,12 @@ app.put("/api/records/:id", requireAuth, requireTrustedOrigin, async (req, res, 
 app.delete("/api/records/:id", requireAuth, requireTrustedOrigin, async (req, res, next) => {
   try {
     if (!ObjectId.isValid(req.params.id)) return res.status(400).json({ error: "無效的資料 ID" });
-    const result = await (await getCollection()).deleteOne({ _id: new ObjectId(req.params.id) });
+    const records = await getCollection();
+    const deleted = await records.findOne({ _id: new ObjectId(req.params.id) });
+    if (!deleted) return res.status(404).json({ error: "找不到資料" });
+    const result = await records.deleteOne({ _id: deleted._id });
     if (!result.deletedCount) return res.status(404).json({ error: "找不到資料" });
+    await notifyLine("刪除", deleted);
     res.status(204).end();
   } catch (error) { next(error); }
 });
