@@ -69,27 +69,49 @@ async function getCollection() {
   return collection;
 }
 
-function lineMessage(action, record) {
+const notificationFields = [
+  ["hotel", "飯店"],
+  ["year", "年份"],
+  ["month", "月份"],
+  ["date", "日期"],
+  ["nights", "晚數"],
+  ["spend", "金額"],
+  ["project", "專案"]
+];
+
+function notificationValue(key, value) {
+  if (value === null || value === undefined || value === "") return "—";
+  if (key === "spend") return `NT$ ${new Intl.NumberFormat("zh-TW").format(Number(value) || 0)}`;
+  return String(value);
+}
+
+function changeDetails(action, record, previous) {
+  if (action === "修改" && previous) {
+    const changed = notificationFields
+      .filter(([key]) => notificationValue(key, previous[key]) !== notificationValue(key, record[key]))
+      .map(([key, label]) =>
+        `${label}：${notificationValue(key, previous[key])} → ${notificationValue(key, record[key])}`
+      );
+    return changed.length ? changed : ["資料內容沒有變更"];
+  }
+  return notificationFields.map(([key, label]) => `${label}：${notificationValue(key, record[key])}`);
+}
+
+function lineMessage(action, record, previous) {
   const changedAt = new Intl.DateTimeFormat("zh-TW", {
     timeZone: "Asia/Taipei",
     dateStyle: "medium",
     timeStyle: "medium"
   }).format(new Date());
-  const amount = new Intl.NumberFormat("zh-TW").format(Number(record.spend) || 0);
   return [
     `【住宿資料${action}通知】`,
-    `飯店：${record.hotel || "—"}`,
-    `年份／月份：${record.year || "—"}／${record.month || "—"}`,
-    `日期：${record.date || "—"}`,
-    `晚數：${record.nights ?? "—"}`,
-    `金額：NT$ ${amount}`,
-    `專案：${record.project || "—"}`,
+    ...changeDetails(action, record, previous),
     `異動時間：${changedAt}`,
     `查看網站：${APP_URL}`
   ].join("\n");
 }
 
-async function notifyLine(action, record) {
+async function notifyLine(action, record, previous = null) {
   if (!LINE_CHANNEL_ACCESS_TOKEN || !LINE_USER_ID) return;
   try {
     const response = await fetch("https://api.line.me/v2/bot/message/push", {
@@ -100,7 +122,7 @@ async function notifyLine(action, record) {
       },
       body: JSON.stringify({
         to: LINE_USER_ID,
-        messages: [{ type: "text", text: lineMessage(action, record) }]
+        messages: [{ type: "text", text: lineMessage(action, record, previous) }]
       })
     });
     if (!response.ok) {
@@ -217,13 +239,17 @@ app.put("/api/records/:id", requireAuth, requireTrustedOrigin, async (req, res, 
   try {
     if (!ObjectId.isValid(req.params.id)) return res.status(400).json({ error: "無效的資料 ID" });
     const data = recordSchema.parse(req.body);
-    const result = await (await getCollection()).findOneAndUpdate(
-      { _id: new ObjectId(req.params.id) },
+    const records = await getCollection();
+    const recordId = new ObjectId(req.params.id);
+    const previous = await records.findOne({ _id: recordId });
+    if (!previous) return res.status(404).json({ error: "找不到資料" });
+    const result = await records.findOneAndUpdate(
+      { _id: recordId },
       { $set: { ...data, updatedAt: new Date() } },
       { returnDocument: "after" }
     );
     if (!result) return res.status(404).json({ error: "找不到資料" });
-    await notifyLine("修改", result);
+    await notifyLine("修改", result, previous);
     res.json(result);
   } catch (error) { next(error); }
 });
